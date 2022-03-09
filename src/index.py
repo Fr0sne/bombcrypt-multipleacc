@@ -99,30 +99,44 @@ for x in range(accounts):
     time.sleep(2)
     
     
-    
+menu_loop_time = 60 * 180 # Loop para colocar todos para trabalhar (Padrão: 1h40m)
+sleep_loop = 180 # Loop para evitar desconexão
+time_count = 0
+
+
+
+
+def safeClick(coordinates):
+    pyautogui.moveTo(coordinates)
+    pyautogui.click()
+    time.sleep(0.75)
 while True:
     for x in range(accounts):
+        time.sleep(4)
         error = pyautogui.locateOnScreen('./images/ConnLostOk.png', confidence=.8)
         if error:
-            pyautogui.click(error)
+            safeClick(error)
+            time.sleep(11)
+            safeClick(connect_wallet[x])
             time.sleep(2)
-            pyautogui.click(connect_wallet[x])
+            safeClick(username_input[x]); time.sleep(1); keyboard.write(login[x]['user'])
             time.sleep(2)
-            pyautogui.click(username_input[x]); time.sleep(1); keyboard.write(login[x]['user'])
+            safeClick(password_input[x]); time.sleep(1); keyboard.write(login[x]['pass'])
             time.sleep(2)
-            pyautogui.click(password_input[x]); time.sleep(1); keyboard.write(login[x]['pass'])
-            time.sleep(2)
-            pyautogui.click(login_button[x]); time.sleep(1)
+            safeClick(login_button[x]); time.sleep(1)
             time.sleep(2)
 
+        time.sleep(4)
+        safeClick(main_menu[x])
         time.sleep(2)
-        pyautogui.click(main_menu[x])
+        safeClick(heroes[x])
         time.sleep(2)
-        pyautogui.click(heroes[x])
+        if time_count >= menu_loop_time:
+            time_count = 0
+            safeClick(_all[x])
+            time.sleep(2)
+        safeClick(back[x])
         time.sleep(2)
-        pyautogui.click(_all[x])
-        time.sleep(2)
-        pyautogui.click(back[x])
-        time.sleep(2)
-        pyautogui.click(treasure_hunt[x])
-    time.sleep(180)
+        safeClick(treasure_hunt[x])
+    time_count += sleep_loop
+    time.sleep(sleep_loop)
