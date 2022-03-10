@@ -1,9 +1,10 @@
+import json
 import keyboard
 import mouse
+from numpy import True_
 import pyautogui
 import time
 
-accounts = int(input("Quantidade de contas: "))
 login = []
 connect_wallet = [] # Botões de conexão da carteira
 username_input = [] # Campos de usuário
@@ -15,27 +16,72 @@ back = [] # Botão de fechar Menu de Herois
 treasure_hunt = [] # Botão de Treasure Hunt
 main_menu = [] # Botão de sair do jogo para voltar ao Menu Principal
 
+def getUsers():
+    with open("users.json", "r") as f:
+        data = json.load(f)
+        f.close()
+        return (data if len(data) > 0 else None)
+
+def addUser(login: dict):
+    try:
+        f = open("users.json", "r")
+        old_data = json.loads(f.read())
+        old_data.append(login)
+        f.close()
+        f = open("users.json", "w")
+        json.dump(old_data, f, indent=4)
+        return True
+    except:
+        print("Ocorreu um erro ao salvar usuário")
+        return False    
+
+users_from_file = getUsers()
+if users_from_file:
+
+    action = input("Identificamos usuários salvos no arquivo de dados de Login. Deseja carregar os dados a partir deste arquivo [S/n]? ")
+    if action.lower() in ["s", '']:
+        for index, single_data in enumerate(users_from_file):
+            print(f"{index + 1} - Usuário: {single_data['user']} | Senha: {single_data['pass']}")
+        selected_users = input("Qual dessas contas você deseja carregar? Ex.: 1,2,3,4... ou all para selecionar todas: ").lower()
+        selected_users = selected_users.split(',')
+        selected_users = list(map(int , selected_users)) if selected_users[0] != "all" else range(len(users_from_file))
+        print(f"=== Contas Selecionadas ({len(selected_users)}) ===")
+        for selected_user in selected_users:
+            login.append(selected_user)
+            print(users_from_file[selected_user - 1])
+        def addMore():
+            if input("Deseja adicionar mais alguma conta à essa lista [S/n]? ").lower() in ['s', '']:
+                addUser({"user": input("Usuário: "), "pass": input("Senha: ")})
+                return addMore()
+        addMore()
+accounts = int(input("Quantidade de contas: ")) if len(login) == 0 else None
+from_file = False if len(login) == 0 else True
 print(
-"Atenção! Você terá que clicar nos respectivos botões de cada janela para cada conta.\n"
+"\nAtenção! Você terá que clicar nos respectivos botões de cada janela para cada conta.\n"
 "Toda vez após clicar, haverá um delay de 2s para executar o próximo click.\n"
 "Inicialmente, vamos precisar do login de cada conta para efetuar o login automaticamente "
-"em casos de perda de conexão."
+"em casos de perda de conexão.\n"
 )
 
-for x in range(accounts):
+for x in range(accounts or len(login)):
     print(("=" * 10) + f" Conta {x+1} " + ("=" * 10) )
     def loginData():
         username = input(f"Digite o usuário da conta {x+1}: ")
         password = input(f"Digite a senha da conta {x+1}: ")
         action = input("Os dados coincidem? [S/n]").lower()
         if action == "s":
-            login.append({"user": username, "pass": password})
+            user_data = {"user": username, "pass": password}
+            login.append(user_data)
+            addUser(user_data)
+            print("Usário adicionado ao arquivo users.json")
+
         elif action == "n":
-            return loginData()
+            loginData()
         else:
             pass
+    if not from_file:
+        loginData()
 
-    loginData()
     print("Clique no botão de conectar a carteira")
     while not mouse.is_pressed(button='left'): pass
     connect_wallet.append(pyautogui.position())
