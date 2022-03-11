@@ -6,13 +6,9 @@ import mouse
 import os
 import pyautogui
 import keyboard
-import colorama
-
-colorama.init()
 login = [] # dados
 
 
-"Carrega o arquivo ao programa, inserindo em login[]"
 
 
 def safeClick(coordinates, pos_delay: int = 2):
@@ -156,7 +152,6 @@ def loadFromFile(): # Função para carregar as contas ao programa. Não retorna
                     addMore()
             addMore()
 
-"Permite ao usuário digitar os dados para adicionar a lista login[] e ao arquivo users.json através da função addUser(dict)"   
 def loginData(): # Da o input para o usuário digitar os dados da conta e pergunta se os dados coincidem
     username = input(f"Digite o usuário da conta: ")
     password = input(f"Digite a senha da conta: ")
@@ -172,7 +167,6 @@ def loginData(): # Da o input para o usuário digitar os dados da conta e pergun
     else:
         pass
 
-"Retorna os usuários do arquivo, ou None caso não tenha nenhum"
 def getUsers(): # Retorna a lista de usuários do arquivo users.json
     with open("users.json", "r") as f:
         data = json.load(f)
@@ -182,7 +176,6 @@ def getUsers(): # Retorna a lista de usuários do arquivo users.json
 
 
 
-"Readonly"
 def addUser(login_dict: dict): # Adiciona um dict ao arquivo de users.json
     try:
         f = open("users.json", "r")
@@ -208,7 +201,6 @@ def main():
         for _ in range(accounts):
             loginData()
 
-    accounts_number = len(login)
     sleep(.75)
     print("Agora vamos mapear os botões! Recomendamos deixar a tela do navegador cheia.")
     print("A cada 2 segundos será solicitado um clique em um objeto.")
@@ -224,7 +216,6 @@ def main():
         close_heroes = getUserCoord('Clique no botão de fechar menu de Heróis')
         treasure_hunt = getUserCoord('Clique no Treasure Hunt')
         back_button = getUserCoord('Clique no botão de Voltar para o menu')
-        # Tela pós-config => Menu Principal
         mapping_dict = {
             "connect_wallet": connect_wallet,
             "username_input": username_input,
@@ -236,7 +227,6 @@ def main():
             "treasure_hunt": treasure_hunt,
             "back_button": back_button
         }
-        # Prosseguir os mesmos passos para as outras contas, excluindo a primeira e todas devem estar no menu principal
         saveMapping(mapping_dict)
     print("Mapeamento Salvo com sucesso!")
     input("Quando estiver tudo pronto, pressione enter e minimize este programa. Você terá 5 segundos.\n"
