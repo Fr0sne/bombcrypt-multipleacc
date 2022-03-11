@@ -1,0 +1,38 @@
+{
+    "connect_wallet": [
+        949,
+        507
+    ],
+    "username_input": [
+        966,
+        301
+    ],
+    "password_input": [
+        968,
+        333
+    ],
+    "login_button": [
+        948,
+        389
+    ],
+    "heroes": [
+        1288,
+        562
+    ],
+    "work_all": [
+        884,
+        255
+    ],
+    "close_heroes": [
+        1000,
+        214
+    ],
+    "treasure_hunt": [
+        952,
+        364
+    ],
+    "back_button": [
+        606,
+        155
+    ]
+}

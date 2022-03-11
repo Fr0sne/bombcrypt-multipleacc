@@ -1,188 +1,251 @@
+
 import json
-import keyboard
+from time import sleep
+import platform
 import mouse
-from numpy import True_
+import os
 import pyautogui
-import time
+import keyboard
+import colorama
 
-login = []
-connect_wallet = [] # Botões de conexão da carteira
-username_input = [] # Campos de usuário
-password_input = [] # Campos de senha
-login_button = [] # Botão de Login
-heroes = [] # Botão de Herois
-_all = [] # Botão de colocar Todos para trabalhar
-back = [] # Botão de fechar Menu de Herois
-treasure_hunt = [] # Botão de Treasure Hunt
-main_menu = [] # Botão de sair do jogo para voltar ao Menu Principal
+colorama.init()
+login = [] # dados
 
-def getUsers():
+
+"Carrega o arquivo ao programa, inserindo em login[]"
+
+
+def safeClick(coordinates, pos_delay: int = 2):
+        pyautogui.moveTo(coordinates)
+        sleep(0.75)
+        pyautogui.click()
+        sleep(pos_delay)
+
+def prepareTabs(tabs_to_open):
+    if platform.system() == 'Windows':
+        for acc in range(tabs_to_open):
+            os.system('start "" "https://app.bombcrypto.io/"')
+            sleep(5)
+            # os.system('start chrome --start-fullscreen')
+
+def doLogin(connect_button, login_input, pass_input, login_button):
+    for acc in login:
+        safeClick(connect_button, 2)
+        safeClick(login_input, 2)
+        keyboard.write(acc['user'])
+        safeClick(pass_input, 2)
+        keyboard.write(acc['pass'])
+        safeClick(login_button, 2)
+        if len(login) > 1: keyboard.press_and_release(['ctrl', 'tab'])
+        sleep(2)
+
+
+def reconnect(account, connect_button, login_input, pass_input, login_button):
+    sleep(11)
+    safeClick(connect_button)
+    safeClick(login_input)
+    keyboard.write(account['user']); sleep(2)
+    safeClick(pass_input)
+    keyboard.write(account['pass']); sleep(2)
+    safeClick(login_button)
+    sleep(15)
+
+
+def startTasks(mapping: dict, accounts: list):
+    print("[!] Preparando as abas...")
+    prepareTabs(len(accounts))
+    print("[OK] Abas preparadas!")
+    sleep(10)
+    login_requirements = mapping['connect_wallet'], mapping['username_input'], mapping['password_input'], mapping['login_button']
+    print("[!] Efetuando Login")
+    doLogin(*login_requirements)
+    print("[OK] Login efetuado")
+    sleep(4)
+    first_time = True
+    round_time = 60 * 100 # 1h40
+    fake_round_time = 60 * 3 # Rodizio de 3 minutos
+    round_timecount = 0
+    next_round = False
+    print("[i] Iniciando o rodízio geral...")
+    while True:
+        for acc in accounts:
+            print("[!] Procurando botão de desconexão")
+            error = pyautogui.locateOnScreen('./images/ConnLostOk.png', confidence=.75)
+            if error:
+                safeClick(error, 2)
+                reconnect(acc, error)
+            else:
+                print("[OK] Tudo certo! Não foi desconectado")
+            if not first_time: 
+                print("[i] Voltando ao menu principal")
+                safeClick(mapping['back_button'], 2)
+                
+            print("[i] Abrindo menu de Heróis")
+            safeClick(mapping['heroes'], 2)
+            if next_round or first_time:
+                print("[i] Colocando todos para trabalhar")
+                safeClick(mapping['work_all'], 2)
+                if not first_time:
+                    next_round = not next_round
+
+            print("[i] Fechando menu de Heróis")
+            safeClick(mapping['close_heroes'], 2)
+            print("[i] Abrindo modo Treasure Hunt")
+            safeClick(mapping['treasure_hunt'], 2)
+            print("[i] Indo para próxima conta")
+
+            if len(login) > 1: keyboard.press_and_release(['ctrl', 'tab'])
+
+        first_time = False
+        round_timecount += fake_round_time
+        if round_timecount >= round_time:
+            round_timecount = 0
+            next_round = True
+        if len(login) > 1:
+            for _ in range(fake_round_time/3):
+                keyboard.press_and_release(['ctrl', 'tab'])
+                sleep(3)
+        else: sleep(fake_round_time)
+
+
+def loadMapping():
+    try:
+        with open("mapping.json", "r") as f:
+            data = json.load(f)
+            f.close()
+            return data or None
+    except:
+        print("Ocorreu um erro ao consultar as configurações de mapeamento")
+        return False  
+
+def saveMapping(mapping_item: dict):
+    try:
+        f = open("mapping.json", "w")
+        json.dump(mapping_item, f, indent=4)
+        return True
+    except:
+        print("Ocorreu um erro ao salvar mapeamento.")
+        return False  
+
+
+def getUserCoord(phrase: str):
+    print(phrase)
+    while not mouse.is_pressed(button='left'): pass
+    pos = pyautogui.position()
+    print("Coordenadas capturadas!")
+    sleep(2)
+    return pos
+
+def loadFromFile(): # Função para carregar as contas ao programa. Não retorna valor algum, apenas adiciona os dados na lista login.   
+    users_from_file = getUsers() # Pega os usuários do users.json
+    if users_from_file: # Se tiver usuário no arquivo: 
+        action = input("Identificamos usuários salvos no arquivo de dados de Login. Deseja carregar os dados a partir deste arquivo [S/n]? ")
+        if action.lower() in ["s", '']:
+            for index, single_data in enumerate(users_from_file):
+                print(f"{index + 1} - Usuário: {single_data['user']} | Senha: {single_data['pass']}")
+            selected_users = input("Qual dessas contas você deseja carregar? Ex.: 1,2,3,4... ou all para selecionar todas: ").lower()
+            selected_users = selected_users.split(',')
+            selected_users = list(map(int , selected_users)) if selected_users[0] != "all" else range(len(users_from_file))
+            print(f"=== Contas Selecionadas ({len(selected_users)}) ===")
+            for selected_user in selected_users:
+                login.append(users_from_file[selected_user - 1])
+                print(users_from_file[selected_user - 1])
+            def addMore():
+                if input("Deseja adicionar mais alguma conta à essa lista [S/n]? ").lower() in ['s', '']:
+                    addUser({"user": input("Usuário: "), "pass": input("Senha: ")})
+                    addMore()
+            addMore()
+
+"Permite ao usuário digitar os dados para adicionar a lista login[] e ao arquivo users.json através da função addUser(dict)"   
+def loginData(): # Da o input para o usuário digitar os dados da conta e pergunta se os dados coincidem
+    username = input(f"Digite o usuário da conta: ")
+    password = input(f"Digite a senha da conta: ")
+    action = input("Os dados coincidem? [S/n]").lower()
+    if action == "s":
+        user_data = {"user": username, "pass": password}
+        login.append(user_data)
+        addUser(user_data)
+        print("Usário adicionado ao arquivo users.json")
+
+    elif action == "n":
+        loginData()
+    else:
+        pass
+
+"Retorna os usuários do arquivo, ou None caso não tenha nenhum"
+def getUsers(): # Retorna a lista de usuários do arquivo users.json
     with open("users.json", "r") as f:
         data = json.load(f)
         f.close()
         return (data if len(data) > 0 else None)
 
-def addUser(login: dict):
+
+
+
+"Readonly"
+def addUser(login_dict: dict): # Adiciona um dict ao arquivo de users.json
     try:
         f = open("users.json", "r")
         old_data = json.loads(f.read())
-        old_data.append(login)
+        old_data.append(login_dict)
         f.close()
         f = open("users.json", "w")
         json.dump(old_data, f, indent=4)
+        login.append(login_dict)
         return True
     except:
         print("Ocorreu um erro ao salvar usuário")
-        return False    
+        return False  
 
-users_from_file = getUsers()
-if users_from_file:
-
-    action = input("Identificamos usuários salvos no arquivo de dados de Login. Deseja carregar os dados a partir deste arquivo [S/n]? ")
-    if action.lower() in ["s", '']:
-        for index, single_data in enumerate(users_from_file):
-            print(f"{index + 1} - Usuário: {single_data['user']} | Senha: {single_data['pass']}")
-        selected_users = input("Qual dessas contas você deseja carregar? Ex.: 1,2,3,4... ou all para selecionar todas: ").lower()
-        selected_users = selected_users.split(',')
-        selected_users = list(map(int , selected_users)) if selected_users[0] != "all" else range(len(users_from_file))
-        print(f"=== Contas Selecionadas ({len(selected_users)}) ===")
-        for selected_user in selected_users:
-            login.append(selected_user)
-            print(users_from_file[selected_user - 1])
-        def addMore():
-            if input("Deseja adicionar mais alguma conta à essa lista [S/n]? ").lower() in ['s', '']:
-                addUser({"user": input("Usuário: "), "pass": input("Senha: ")})
-                return addMore()
-        addMore()
-accounts = int(input("Quantidade de contas: ")) if len(login) == 0 else None
-from_file = False if len(login) == 0 else True
-print(
-"\nAtenção! Você terá que clicar nos respectivos botões de cada janela para cada conta.\n"
-"Toda vez após clicar, haverá um delay de 2s para executar o próximo click.\n"
-"Inicialmente, vamos precisar do login de cada conta para efetuar o login automaticamente "
-"em casos de perda de conexão.\n"
-)
-
-for x in range(accounts or len(login)):
-    print(("=" * 10) + f" Conta {x+1} " + ("=" * 10) )
-    def loginData():
-        username = input(f"Digite o usuário da conta {x+1}: ")
-        password = input(f"Digite a senha da conta {x+1}: ")
-        action = input("Os dados coincidem? [S/n]").lower()
-        if action == "s":
-            user_data = {"user": username, "pass": password}
-            login.append(user_data)
-            addUser(user_data)
-            print("Usário adicionado ao arquivo users.json")
-
-        elif action == "n":
-            loginData()
-        else:
-            pass
+def main():
+    users_from_file = getUsers()
+    if users_from_file:
+        loadFromFile()
+    
+    accounts = int(input("Quantidade de contas: ")) if len(login) == 0 else None
+    from_file = False if len(login) == 0 else True
     if not from_file:
-        loginData()
+        for _ in range(accounts):
+            loginData()
 
-    print("Clique no botão de conectar a carteira")
-    while not mouse.is_pressed(button='left'): pass
-    connect_wallet.append(pyautogui.position())
-    print("Wallet - OK")
-    time.sleep(2)
+    accounts_number = len(login)
+    sleep(.75)
+    print("Agora vamos mapear os botões! Recomendamos deixar a tela do navegador cheia.")
+    print("A cada 2 segundos será solicitado um clique em um objeto.")
 
-    print("Clique no campo de usuário")
-    while not mouse.is_pressed(button='left'): pass
-    username_input.append(pyautogui.position())
-    time.sleep(0.5)
-    keyboard.write(login[x]['user'])
-    print("Username - OK")
-    time.sleep(2)
-
-    print("Clique no campo de senha")
-    while not mouse.is_pressed(button='left'): pass
-    password_input.append(pyautogui.position())
-    time.sleep(0.5)
-    keyboard.write(login[x]['pass'])
-    print("Password - OK")
-    time.sleep(2)
-
-    print("Clique no botão de efetuar login")
-    while not mouse.is_pressed(button='left'): pass
-    login_button.append(pyautogui.position())
-    print("Login Button - OK")
-    time.sleep(2)
-
-
-
-    print("Clique no botão de Herois")
-    while not mouse.is_pressed(button='left'): pass
-    heroes.append(pyautogui.position())
-    print("Heroes - OK")
-    time.sleep(2)
-
-    print("Clique no botão para todos trabalharem")
-    while not mouse.is_pressed(button='left'): pass
-    _all.append(pyautogui.position())
-    print("Work All - OK")
-    time.sleep(2)
-
-    print("Clique no botão para fechar os o menu de heróis")
-    while not mouse.is_pressed(button='left'): pass
-    back.append(pyautogui.position())
-    print("Close Heroes Menu - OK")
-    time.sleep(2)
-
-
-    print("Clique no botão de treasure hunt")
-    while not mouse.is_pressed(button='left'): pass
-    treasure_hunt.append(pyautogui.position())
-    print("Treasure Hunt - OK")
-    time.sleep(2)
-
-    print("Clique no botão de voltar")
-    while not mouse.is_pressed(button='left'): pass
-    main_menu.append(pyautogui.position())
-    print("Menu - OK")
-    print(f"Finalizado mapeamento de botões para conta {x+1}.")
-    time.sleep(2)
-    
-    
-menu_loop_time = 60 * 180 # Loop para colocar todos para trabalhar (Padrão: 1h40m)
-sleep_loop = 180 # Loop para evitar desconexão
-time_count = 0
+    mapping_saved_data = loadMapping()
+    if not mapping_saved_data:
+        connect_wallet = getUserCoord('Clique no botão de conectar a carteira')
+        username_input = getUserCoord('Clique no campo de Username')
+        password_input = getUserCoord('Clique no campo de Senha')
+        login_button = getUserCoord('Clique no botão de Login')
+        heroes = getUserCoord('Clique no botão de Herois')
+        work_all = getUserCoord('Clique no botão para todos Trabalharem')
+        close_heroes = getUserCoord('Clique no botão de fechar menu de Heróis')
+        treasure_hunt = getUserCoord('Clique no Treasure Hunt')
+        back_button = getUserCoord('Clique no botão de Voltar para o menu')
+        # Tela pós-config => Menu Principal
+        mapping_dict = {
+            "connect_wallet": connect_wallet,
+            "username_input": username_input,
+            "password_input": password_input,
+            "login_button": login_button,
+            "heroes": heroes,
+            "work_all": work_all,
+            "close_heroes": close_heroes,
+            "treasure_hunt": treasure_hunt,
+            "back_button": back_button
+        }
+        # Prosseguir os mesmos passos para as outras contas, excluindo a primeira e todas devem estar no menu principal
+        saveMapping(mapping_dict)
+    print("Mapeamento Salvo com sucesso!")
+    input("Quando estiver tudo pronto, pressione enter e minimize este programa. Você terá 5 segundos.\n"
+    "Não esqueça de fechar o navegador onde mapeou os botões.")
+    startTasks(mapping_dict if not mapping_saved_data else mapping_saved_data, login)
 
 
 
 
-def safeClick(coordinates):
-    pyautogui.moveTo(coordinates)
-    pyautogui.click()
-    time.sleep(0.75)
-while True:
-    for x in range(accounts):
-        time.sleep(4)
-        error = pyautogui.locateOnScreen('./images/ConnLostOk.png', confidence=.8)
-        if error:
-            safeClick(error)
-            time.sleep(11)
-            safeClick(connect_wallet[x])
-            time.sleep(2)
-            safeClick(username_input[x]); time.sleep(1); keyboard.write(login[x]['user'])
-            time.sleep(2)
-            safeClick(password_input[x]); time.sleep(1); keyboard.write(login[x]['pass'])
-            time.sleep(2)
-            safeClick(login_button[x]); time.sleep(1)
-            time.sleep(2)
 
-        time.sleep(4)
-        safeClick(main_menu[x])
-        time.sleep(2)
-        safeClick(heroes[x])
-        time.sleep(2)
-        if time_count >= menu_loop_time:
-            time_count = 0
-            safeClick(_all[x])
-            time.sleep(2)
-        safeClick(back[x])
-        time.sleep(2)
-        safeClick(treasure_hunt[x])
-    time_count += sleep_loop
-    time.sleep(sleep_loop)
+if __name__ == '__main__':
+    main()
