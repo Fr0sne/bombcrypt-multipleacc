@@ -37,6 +37,7 @@ def doLogin(connect_button, login_input, pass_input, login_button):
 
 
 def reconnect(account, connect_button, login_input, pass_input, login_button):
+    print(f"A conta desconectada foi: {account['user']}? ")
     sleep(11)
     safeClick(connect_button)
     safeClick(login_input)
@@ -64,12 +65,12 @@ def startTasks(mapping: dict, accounts: list):
     next_round = False
     print("[i] Iniciando o rodízio geral...")
     while True:
-        for acc in accounts:
+        for index, acc in enumerate(accounts):
             print("[!] Procurando botão de desconexão")
             error = pyautogui.locateOnScreen('./images/ConnLostOk.png', confidence=.75)
             if error:
                 safeClick(error, 2)
-                reconnect(acc, error)
+                reconnect(acc, *login_requirements)
             else:
                 print("[OK] Tudo certo! Não foi desconectado")
             if not first_time: 
@@ -81,8 +82,8 @@ def startTasks(mapping: dict, accounts: list):
             if next_round or first_time:
                 print("[i] Colocando todos para trabalhar")
                 safeClick(mapping['work_all'], 2)
-                if not first_time:
-                    next_round = not next_round
+                if not first_time and index == len(accounts) - 1:
+                    next_round = not next_round # False
 
             print("[i] Fechando menu de Heróis")
             safeClick(mapping['close_heroes'], 2)
@@ -90,7 +91,7 @@ def startTasks(mapping: dict, accounts: list):
             safeClick(mapping['treasure_hunt'], 2)
             print("[i] Indo para próxima conta")
 
-            if len(login) > 1: keyboard.press_and_release(['ctrl', 'tab'])
+            if len(login) > 1: keyboard.press_and_release(['ctrl', str(index + 1)])
 
         first_time = False
         round_timecount += fake_round_time
@@ -98,7 +99,7 @@ def startTasks(mapping: dict, accounts: list):
             round_timecount = 0
             next_round = True
         if len(login) > 1:
-            for _ in range(fake_round_time/3):
+            for _ in range(int(fake_round_time/3)):
                 keyboard.press_and_release(['ctrl', 'tab'])
                 sleep(3)
         else: sleep(fake_round_time)
